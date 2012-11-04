@@ -1,0 +1,102 @@
+<html>
+	<head>
+		<meta charset="utf-8"> 
+		<title>WebSocket Test</title> 
+		<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.2.js"></script>
+		<style type="text/css">
+			*{margin:0;}
+			body{margin:0px;background-color:black;font-family:"Courier New";}
+			#output{}
+			p{color:white;}
+			input{color:#0e0;background-color:black;font-family:"Courier New";width:100%;position:fixed;bottom:0px;}
+			h1{color:white;font-size:14px;}
+		</style>
+	</head>
+	<body> 
+		<h1>WebSocket chat server test!</h1> 
+		<div id="output"></div> 
+		<form>
+			<input id="input" type="text" value="&lt;" tabindex="1">
+		</form>
+	</body>
+<script type="text/javascript"> 
+$(window).load(function(){
+/**
+ * Test of WServer for lgm
+ *
+ * @author Gregor
+ */
+var wsUri = "ws://int.evil.si:10101/";
+var output;
+
+output = document.getElementById("output");
+testWebSocket();
+
+$("form").submit(onSubmit);
+$("input")[0].focus();
+
+function testWebSocket() {
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function(evt) {
+        onOpen(evt)
+    };
+    websocket.onclose = function(evt) {
+        onClose(evt)
+    };
+    websocket.onmessage = function(evt) {
+        onMessage(evt)
+    };
+    websocket.onerror = function(evt) {
+        onError(evt)
+    };
+}
+
+function onOpen(evt) {
+    writeToScreen("CONNECTED");
+    //doSend("WebSocket rocks");
+}
+
+function onClose(evt) {
+    writeToScreen("DISCONNECTED");
+}
+
+function onSubmit() {
+    var input = $("#input")[0];
+
+    var c = input.value.substring(0, 1);
+    if (c == '<') {
+        var value = input.value.substring(1);
+    } else {
+        var value = input.value;
+    }
+
+    input.value = "<";
+
+    doSend(value);
+    return false;
+}
+
+function onMessage(evt) {
+    writeToScreen('<span style="color: green;">&gt' + evt.data + '</span>');
+}
+
+function onError(evt) {
+    writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+}
+
+function doSend(message) {
+    websocket.send(message);
+}
+
+function writeToScreen(message) {
+    var pre = document.createElement("p");
+    pre.style.wordWrap = "break-word";
+    pre.innerHTML = message;
+    output.appendChild(pre);
+    console.log(message);
+}
+window.addEventListener("load", init, false);
+});
+
+</script>
+</html>
