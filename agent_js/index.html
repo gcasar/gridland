@@ -1,0 +1,86 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Gridland - Loading and sparse TileGrid test</title>
+    <link rel="stylesheet" type="text/css" href="base.css" />
+</head>
+<body>
+    <div id="container">
+        <h1>Gridland - Loading and sparse TileGrid test</h1>
+        <canvas width="800px" height="600px" id="canvas"></canvas>
+    </div>
+</body>
+<script src="gridland.js" ></script>
+<script>
+    c = new Camera({ canvas: 'canvas' });
+
+    var urls = [];
+
+    urls.push("http://i.imgur.com/iAp8w.jpg");
+    urls.push("http://i.imgur.com/MXUXM.jpg");
+    urls.push("http://i.imgur.com/0I9K6.jpg");
+    urls.push("http://i.imgur.com/9FaAU.jpg");
+    //urls.push("http://i.imgur.com/JgJHm.png");
+
+
+	
+	var wsUri = "ws://localhost:10101/lgm";
+	var output;
+	
+	function init() { 
+		output = document.getElementById("output");
+		testWebSocket();
+	}  
+	
+	function testWebSocket() { 
+		websocket = new WebSocket(wsUri);
+		websocket.onopen = function(evt) {
+			onOpen(evt)
+		};
+		websocket.onclose = function(evt) { 
+			onClose(evt) 
+		};
+		websocket.onmessage = function(evt) { 
+			onMessage(evt) 
+		}; 
+		websocket.onerror = function(evt) { 
+			onError(evt) 
+		}; 
+	}  
+	
+	function onOpen(evt) { 
+		
+		writeToScreen("CONNECTED"); 
+		doSend("WebSocket rocks"); 
+	}  
+	
+	function onClose(evt) { 
+		writeToScreen(evt);
+		writeToScreen("DISCONNECTED"); 
+	}  
+	
+	function onMessage(evt) { 
+		writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>'); 
+		websocket.close(); 
+	}  
+	
+	function onError(evt) { 
+		writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data); 
+	}  
+	
+	function doSend(message) { 
+		writeToScreen("SENT: " + message); 
+		websocket.send(message);
+	}  
+	
+	function writeToScreen(message) { 
+		console.log(message);
+
+	} 
+
+	window.addEventListener("load", init, false);	
+    c.draw();
+</script>
+</html>
