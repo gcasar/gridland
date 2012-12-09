@@ -320,7 +320,7 @@ public class Main {
 
 	}
 
-	public static void _main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException {
 		
 		info("Starting game server (release %s)", RELEASE);
 
@@ -512,7 +512,7 @@ public class Main {
 	
 	public static void info(String format, Object ... objects) {
 		
-		//System.out.println(date.format(new Date()) + String.format(format, objects));
+		System.out.println(date.format(new Date()) + String.format(format, objects));
 		
 	}
 	

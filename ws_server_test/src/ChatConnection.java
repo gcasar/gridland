@@ -3,12 +3,12 @@ import java.nio.channels.SocketChannel;
 
 import si.evil.server.Buffer;
 import si.evil.server.Connection;
-import si.evil.server.WServer;
+import si.evil.server.Server;
 
 
 public class ChatConnection extends Connection {
 
-	public ChatConnection(SocketChannel c, WServer manager) {
+	public ChatConnection(SocketChannel c, Server manager) {
 		super(c,manager);
 	}
 	

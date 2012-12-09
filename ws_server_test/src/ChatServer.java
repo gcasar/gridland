@@ -1,4 +1,4 @@
-import si.evil.server.WServer;
+import si.evil.server.Server;
 
 /**
  * Test for WServer, echoes recived messages to all connections
@@ -12,7 +12,7 @@ public class ChatServer {
 	 */
 	public static void main(String[] args) {
 		//Supply our own factory
-		WServer server = new WServer(new ConnectionFactory());
+		Server server = new Server(new ConnectionFactory());
 		if(server.init())
 			server.serve();
 		else

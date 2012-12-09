@@ -1,5 +1,11 @@
+/**
+ * Gridland Javascript library - agent visualization and client agent abstraction
+ * @author Gregor
+ */
 gridland = function () {
-
+    //Other initializations
+    //used in Sprite when preloading
+    Image.cache = []
 
     function log(msg) {
         console.log(msg);
@@ -27,7 +33,6 @@ gridland = function () {
     }
 
     //NETWORK FUNCTIONS
-
     this.Message = function (params) {
 
     }
@@ -52,9 +57,6 @@ gridland = function () {
     * Every drawable is also a rectangle
     */
     this.Drawable = function () {
-        this.totalResources = 0,
-        this.loadedResources = 0,
-
         this.x = 0;
         this.y = 0;
     }
@@ -72,17 +74,18 @@ gridland = function () {
 
     /**
     * Is called by camera to determine if this should be drawn
+    * @returns true if should be drawn
     */
     this.Drawable.prototype.isVisible = function (wx, wy, cw, ch) {
         return true;
     }
 
-    this.Drawable.prototype.moveTo = function (dx, dy) {
+    this.Drawable.prototype.move = function (dx, dy) {
         this.x += dx;
         this.y += dy;
     }
 
-    this.Drawable.prototype.move = function (x, y) {
+    this.Drawable.prototype.moveTo = function (x, y) {
         this.x = x;
         this.y = y;
     }
@@ -96,70 +99,51 @@ gridland = function () {
 
     /**
     * Can be used with Camera to draw sprite images
-    * and is also used in TileGrid only as image part wrapper
+    * and is also used in TileGrid only as image wrapper
     * 
-    * Caches images so they need not be reloaded
+    * Chaches images
     *
     * @param src url of image to load
-    * @param onload hook when sprite is done loading
-    * @param onimgload hook when image is done loading. 
-    *         if there are multiple sprites with the same image
-    *         and all have onload and onimgload, every onload
-    *         callback will be called, but only one onimgload - 
-    *        the one that was defined last.
     */
     this.Sprite = function (params) {
+        Drawable.call(this, params);
+        
         assert(params.src != undefined, "Bad params");
-
 
         this.x = getdef('x', 0, params);
         this.y = getdef('y', 0, params);
         this.ox = getdef('ox', 0, params);
         this.oy = getdef('oy', 0, params);
-        this.width = getdef('width', -1, params);
-        this.height = getdef('height', -1, params);
+        //Private - _width is constat
+        this._width = getdef('width', -1, params);
+        //Private - _height is constant
+        this._height = getdef('height', -1, params);
         this.visible = getdef('visible', true, params);
-
-        this._custom_onload = getdef('onload', function () { }, params);
-
-        this.totalResources = 1;
 
         //Check if we need to cache the image
         //cache var is created after this function and before prototyping
         if (Image.cache[params.src]) {
             this._cached = true;
-            this.img = Image.cache[params.src];
-            if (this.img.complete)
-                this.onload();
-            else
-                this.img._sprites.push(this);
-
-            //If there is an onimgload callback in params, overwrite it
-            if (getdef('onimgload', false, params) !== false) {
-                this.img._onimgload = params.onimgload;
-            }
-
+            this._img = Image.cache[params.src];
         } else {
-            this._cached = false;
-
-            this.img = new Image();
-            this.img._sprites = [this];
-            this.img.onload = function () {
-                for (var i in this._sprites) {
-                    this._sprites[i].onload();
-                }
-                this._onimgload();
+            this._img = new Image();
+            this._img._sprites = [this];
+            this._img.onload = function () {
+                if(this._width==-1)
+                    this._width = _img.width;
+                if(this._height==-1)
+                    this._height = _img.height;
             }
-            this.img.src = params.src; //Start image loading
-            this.img._onimgload = getdef('onimgload', function () { }, params);
-            Image.cache[params.src] = this.img;
+            this._img.src = params.src; //Start image loading
+            Image.cache[params.src] = this._img;
         }
-
     }
 
-    Image.cache = []
+    
 
     this.Sprite.prototype = new Drawable();
+    
+    this.Sprite.prototype.constructor = this.Sprite;
 
     /**
     * @param ctx canvas context
@@ -169,24 +153,11 @@ gridland = function () {
     * @param wh camera height
     */
     this.Sprite.prototype.draw = function (ctx, wx, wy, cw, ch) {
-        if (this.loadedResources == this.totalResources && this.visible == true) {
-            ctx.drawImage(this.img, this.ox, this.oy, this.width, this.height,
-                            wx + this.x, wy + this.y, this.width, this.height);
+        if (this.visible == true && this._img.complete) {
+            ctx.drawImage(this._img, this.ox, this.oy, this._width, this._height,
+                            wx + this.x, wy + this.y, this._width, this._height);
         }
     }
-
-    this.Sprite.prototype.onload = function () {
-        //Load defaults
-        if (this.width == -1)
-            this.width = this.img.width;
-        if (this.height == -1)
-            this.height = this.img.height;
-        this.loadedResources++;
-        this._custom_onload();
-        //Return number of loaded resources
-        return 1;
-    }
-
 
     /**
     * Convinience class for faster camera movement (world drawing)
@@ -204,9 +175,12 @@ gridland = function () {
     * @param y world position in pixels
     */
     this.TileGrid = function (params) {
-        this.width = getdef('width', 0, params);
-        this.height = getdef('height', 0, params);
-        this.size = getdef('size', 0, params);
+        //Call parent constructor
+        Drawable.call(this, params);
+        
+        this._width = getdef('width', 0, params);
+        this._height = getdef('height', 0, params);
+        this._size = getdef('size', 0, params);
         this.x = getdef('x', 0, params);
         this.y = getdef('y', 0, params);
         this._custom_onload = getdef('onload', function () { }, params);
@@ -214,39 +188,26 @@ gridland = function () {
         assert(params.tiles != undefined, "Bad params");
 
         //Tile types object (asoc array)
-        this.tile_types = params.tiles;
+        this._tile_types = params.tiles;
 
+        //Generates numeric IDs from general javascript array Keys
         //generate tiles array - json IDs are taken from this array
         //this means that tiles get arrays as they are specified in the tiles
         //param
-        this.tiles = []
+        this._tiles = [];
+        
+        //Grid is initialised by calling fromMatrix or fromSparseMatrix        
+        this._grid = [];
 
-        for (var i in this.tile_types) {
-            //also hook onload
-            sprite = this.tile_types[i];
-
-            this.totalResources += sprite.totalResources;
-            if (sprite.totalResources == sprite.loadedResources) {
-                this.loadedResources += sprite.loadedResources;
-            } else {
-                sprite._onload = sprite.onload;
-                sprite._tile_grid = this;
-                sprite.onload = this.onload;
-            }
-
-            this.tiles.push(sprite);
+        for (var i in this._tile_types) {
+            sprite = this._tile_types[i];
+            this._tiles.push(sprite);
         }
     }
 
     this.TileGrid.prototype = new Drawable();
-
-    this.TileGrid.prototype.onload = function () {
-        //get num loaded
-        var n = this._onload();
-        this._tile_grid._custom_onload();
-        this.loadedResources += n;
-        return n;
-    }
+    
+    this.TileGrid.prototype.constructor = this.TileGrid;
 
     /**
     * @param ctx canvas context
@@ -256,7 +217,17 @@ gridland = function () {
     * @param wh camera height
     */
     this.TileGrid.prototype.draw = function (ctx, wx, wy, cw, ch) {
-
+        for(i=0; i<this._height;i++){
+            for(j=0; j<this._width;j++){
+                var pos = i*this._width+j;
+                if(this._grid[pos]>=this._tiles.length){
+                    //Draw nothing
+                }else{
+                    this._tiles[this._grid[pos]].moveTo(j*this._size,i*this._size);
+                    this._tiles[this._grid[pos]].draw(ctx,wx,wy,cw,ch);
+                }
+            }
+        }
     }
 
     /**
@@ -266,7 +237,17 @@ gridland = function () {
     * where data is 1D array containing w*h elements
     */
     this.TileGrid.prototype.fromMatrix = function (json) {
-
+        var grid = eval('(' + json + ')');
+        assert(grid.width != undefined, "Bad params");
+        assert(grid.height != undefined, "Bad params");
+        assert(grid.data != undefined, "Bad params");
+        
+        if((grid.data.length/grid.width)==grid.height){
+            this._width = grid.width;
+            this._height = grid.height;
+        
+            this._grid = grid.data;
+        }else assert(false, "Bad width&height");
     }
 
     /**
@@ -286,116 +267,66 @@ gridland = function () {
     * @param y
     * @param canvas id of the canvas in the DOM
     */
-    this.Camera = function (params) { this.constructor(params); }
-
-    this.Camera.prototype.constructor = function (params) {
+    this.Camera = function (params) {
         assert(params.canvas != 'undefined', "Bad params");
 
         //Camera position
-        this.x = 0;
-        this.y = 0;
+        //Should be changed by methods moveTo and move()
+        this._x = 0;
+        this._y = 0;
 
         //All drawables managed by this camera
-        this.drawables = [],
+        this._drawables = [],
 
         //Sprites that need to be drawn
         //updateToDraw is the blackbox that decides what is
         //in our view and needs to be drawn
-        this.toDraw = [],
+        this._toDraw = [],
 
-        this.totalResources = 0,
-        this.loadedResources = 0,
-
-        //TODO - for unique resource managment
-        this.resources = []
-        this.loaded = []
-
-        this.canvas_id = params.canvas;
-        this.canvas = document.getElementById(this.canvas_id);
+        this._canvas_id = params.canvas;
+        this._canvas = document.getElementById(this._canvas_id);
 
         //grab drawing context
-        if (this.canvas.getContext) {
-            this.ctx = this.canvas.getContext("2d");
-
-            //Add a sprite drawing function to canvas context
-            this.ctx.drawSprite = function (sprite) {
-                sprite.draw(ctx);
-            }
-
+        if (this._canvas.getContext) {
+            this._ctx = this._canvas.getContext("2d");
         } else {
+            this._ctx = null;
             error("Browser does not support canvas.");
         }
     }
 
     this.Camera.prototype.draw = function () {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
 
-        for (var i in this.toDraw) {
-            this.toDraw[i].draw(this.ctx, this.x, this.y, this.canvas.width, this.canvas.height);
-        }
-
-        if (this.totalResources > this.loadedResources) {
-            this.ctx.font = "30px Arial";
-            this.ctx.fillText("" + this.loadedResources + "/" + this.totalResources,
-                                0, this.canvas.height);
+        for (var i in this._toDraw) {
+            this._toDraw[i].draw(this._ctx, this._x, this._y, this._canvas.width, this._canvas.height);
         }
     }
 
-    this.Camera.prototype.moveTo = function (dx, dy) {
-        this.x += dx;
-        this.y += dy;
+    this.Camera.prototype.move = function (dx, dy) {
+        this._x += dx;
+        this._y += dy;
 
         this.updateToDraw();
     }
 
-    this.Camera.prototype.move = function (x, y) {
-        this.x = x;
-        this.y = y;
+    this.Camera.prototype.moveTo = function (x, y) {
+        this._x = x;
+        this._y = y;
 
         this.updateToDraw();
     }
 
+    /**
+     * TODO
+     **/
     this.Camera.prototype.updateToDraw = function () {
-        this.toDraw = this.drawables;
+        this._toDraw = this._drawables;
     }
 
     this.Camera.prototype.addDrawable = function (drawable) {
-        this.drawables.push(drawable);
-
-        this.totalResources += drawable.totalResources;
-        //Hook onload if sprite has not jet been loaded
-        if (drawable.loadedResources < drawable.totalResources) {
-            drawable._oldOnLoad = drawable.onload;
-            drawable._camera = this;
-            drawable.onload = this._onDrawableLoad;
-        } else {
-            this.loadedResources += drawable.loadedResources;
-        }
-
+        this._drawables.push(drawable);
         this.updateToDraw(); //need to update
     }
-
-    /**
-    * Hook for sprites onload to manage resources
-    */
-    this.Camera.prototype._onDrawableLoad = function () {
-        //Num loaded
-        var num = this._oldOnLoad();
-        this._camera.loadedResources += num;
-        return num;
-    }
-
-    /**
-    * @return % of how many resources have finished loading
-    */
-    this.Camera.prototype.getProcLoaded = function () {
-        return this.loadedResources * 100 / this.totalResources;
-    }
-
-    this.Camera.prototype.finishedLoading = function () {
-        return this.loadedResources == this.totalResources;
-    }
-
-
 
 } ();

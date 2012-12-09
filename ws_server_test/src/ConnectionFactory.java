@@ -1,7 +1,7 @@
 import java.nio.channels.SocketChannel;
 
 import si.evil.server.Connection;
-import si.evil.server.WServer;
+import si.evil.server.Server;
 
 
 /**
@@ -9,10 +9,10 @@ import si.evil.server.WServer;
  * @author Gregor
  *
  */
-public class ConnectionFactory implements WServer.ConnectionFactory {
+public class ConnectionFactory implements Server.ConnectionFactory {
 
 	@Override
-	public Connection createNew(SocketChannel c, WServer s) {
+	public Connection createNew(SocketChannel c, Server s) {
 		return new ChatConnection(c, s);
 	}
 

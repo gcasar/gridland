@@ -62,7 +62,7 @@ public class Connection {
 	/**
 	 * WServer that this connection belongs to
 	 */
-	protected WServer manager = null;
+	protected Server manager = null;
 	
 	/**
 	 * Unique connection identifier
@@ -88,7 +88,7 @@ public class Connection {
 	
 	protected SocketChannel channel = null;
 	
-	public Connection(SocketChannel c, WServer server){
+	public Connection(SocketChannel c, Server server){
 		connected = false;
 		this.channel = c;
 		//set and increment
